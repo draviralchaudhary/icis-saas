@@ -1,0 +1,39 @@
+# ─────────────────────────────────────────────────────────
+# ICIS — Cloudflare Wrangler Config
+# For deploying backend as a Cloudflare Worker (optional)
+# Or use for Cloudflare Pages (frontend)
+# ─────────────────────────────────────────────────────────
+name = "icis-api"
+main = "src/worker.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── Pages (frontend) ─────────────────────────────────
+# [pages]
+# project_name = "icis-frontend"
+# build_command = "npm run build"
+# build_output_directory = "dist"
+
+# ── KV Namespaces (for caching) ───────────────────────
+[[kv_namespaces]]
+binding = "CACHE"
+id      = "your_kv_namespace_id"
+
+# ── R2 Buckets (file storage) ─────────────────────────
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "icis-uploads"
+
+# ── Environment Variables ─────────────────────────────
+[vars]
+ENVIRONMENT = "production"
+
+# ── Secrets (set via: wrangler secret put SECRET_NAME) ─
+# DATABASE_URL
+# JWT_SECRET
+# STRIPE_SECRET_KEY
+
+# ── Routes ────────────────────────────────────────────
+[[routes]]
+pattern = "api.icis.ai/*"
+zone_name = "icis.ai"

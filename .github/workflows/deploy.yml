@@ -1,0 +1,181 @@
+# ─────────────────────────────────────────────────────────
+# ICIS SaaS — GitHub Actions CI/CD
+# Triggers on push to main → build → test → deploy
+# ─────────────────────────────────────────────────────────
+name: ICIS CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION:    ap-south-1
+  ECR_REGISTRY:  ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com
+  NODE_VERSION:  '20'
+
+jobs:
+  # ── 1. LINT & TEST ────────────────────────────────
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install backend deps
+        run: cd backend && npm ci
+
+      - name: Generate Prisma client
+        run: cd backend && npx prisma generate
+
+      - name: Lint backend
+        run: cd backend && npm run lint || true
+
+      - name: Install frontend deps
+        run: cd frontend && npm ci
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+        env:
+          VITE_API_URL: /api
+
+  # ── 2. BUILD & PUSH DOCKER IMAGES ─────────────────
+  build:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push backend
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker build -t $ECR_REGISTRY/icis-production-backend:$IMAGE_TAG ./backend
+          docker tag  $ECR_REGISTRY/icis-production-backend:$IMAGE_TAG \
+                      $ECR_REGISTRY/icis-production-backend:latest
+          docker push $ECR_REGISTRY/icis-production-backend:$IMAGE_TAG
+          docker push $ECR_REGISTRY/icis-production-backend:latest
+
+      - name: Build & push frontend
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker build \
+            --build-arg VITE_API_URL=https://api.icis.ai/api \
+            -t $ECR_REGISTRY/icis-production-frontend:$IMAGE_TAG \
+            ./frontend
+          docker push $ECR_REGISTRY/icis-production-frontend:$IMAGE_TAG
+
+  # ── 3. DEPLOY TO ECS ──────────────────────────────
+  deploy-aws:
+    name: Deploy to AWS ECS
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Update ECS backend service
+        run: |
+          aws ecs update-service \
+            --cluster icis-production-cluster \
+            --service icis-production-backend \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Update ECS frontend service
+        run: |
+          aws ecs update-service \
+            --cluster icis-production-cluster \
+            --service icis-production-frontend \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster icis-production-cluster \
+            --services icis-production-backend icis-production-frontend \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deployment complete
+        run: echo "✓ ICIS deployed successfully to AWS ECS"
+
+  # ── 4. DEPLOY FRONTEND TO VERCEL ─────────────────
+  deploy-vercel:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token:   ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id:  ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./frontend
+          vercel-args: '--prod'
+  pages:
+    name: Deploy Frontend to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: test
+
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 🔥 ADD THIS STEP
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install deps
+        run: cd frontend && npm ci
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4

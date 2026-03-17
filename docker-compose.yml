@@ -1,0 +1,103 @@
+# ─────────────────────────────────────────────────────────
+# ICIS SaaS — Docker Compose (Local Dev)
+# Run: docker compose up -d
+# ─────────────────────────────────────────────────────────
+version: '3.9'
+
+services:
+  # ── PostgreSQL ────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: icis_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       icis_db
+      POSTGRES_USER:     icis_user
+      POSTGRES_PASSWORD: icis_secret
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U icis_user -d icis_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: icis_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend ───────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: icis_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV:      development
+      PORT:          4000
+      DATABASE_URL:  postgresql://icis_user:icis_secret@postgres:5432/icis_db?schema=public
+      REDIS_URL:     redis://redis:6379
+      FRONTEND_URL:  http://localhost:5173
+      JWT_SECRET:    dev_jwt_secret_change_in_prod
+      JWT_REFRESH_SECRET: dev_refresh_secret_change_in_prod
+    ports:
+      - '4000:4000'
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/logs:/app/logs
+    command: npm run dev
+
+  # ── Frontend ──────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: icis_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:4000/api
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./frontend/src:/app/src
+
+  # ── Nginx (prod-like proxy) ───────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: icis_nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/ssl:/etc/nginx/ssl:ro
+
+volumes:
+  postgres_data:
+  redis_data:
