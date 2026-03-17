@@ -30,12 +30,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install frontend dependencies
-        working-directory: frontend
+      - name: Install dependencies
+        working-directory: ./frontend
         run: npm install
 
-      - name: Build frontend
-        working-directory: frontend
+      - name: Build
+        working-directory: ./frontend
         run: npm run build
   # ── 2. BUILD & PUSH DOCKER IMAGES ─────────────────
   build:
