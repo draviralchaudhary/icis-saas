@@ -18,24 +18,25 @@ env:
 jobs:
   # ── 1. LINT & TEST ────────────────────────────────
   test:
-    name: Frontend Build Only
+    name: Build Frontend
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
 
-      - name: Install frontend deps
-        run: |
-          cd frontend
-          npm install
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
 
       - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
+        working-directory: frontend
+        run: npm run build
   # ── 2. BUILD & PUSH DOCKER IMAGES ─────────────────
   build:
     name: Build & Push Images

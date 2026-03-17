@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  base: '/icis-saas// 
+  base: '/icis-saas//',
 
   plugins: [react()],
   resolve: {
