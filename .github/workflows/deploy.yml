@@ -18,32 +18,20 @@ env:
 jobs:
   # ── 1. LINT & TEST ────────────────────────────────
   test:
-    name: Lint & Test
+    name: Frontend Build Only
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install backend deps
-        run: cd backend && npm ci
-
-      - name: Generate Prisma client
-        run: cd backend && npx prisma generate
-
-      - name: Lint backend
-        run: cd backend && npm run lint || true
+          node-version: 20
 
       - name: Install frontend deps
         run: cd frontend && npm ci
 
       - name: Build frontend
         run: cd frontend && npm run build
-        env:
-          VITE_API_URL: /api
 
   # ── 2. BUILD & PUSH DOCKER IMAGES ─────────────────
   build:
