@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import api from '../lib/api'
+import AiChat from "../components/AiChat";
 
 const ContactSchema = z.object({
   name:     z.string().min(2),
@@ -334,6 +335,9 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
-  )
-}
+
+{/* 🔥 AI CHAT WIDGET */}
+<AiChat />
+
+</div>
+)
