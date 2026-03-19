@@ -88,6 +88,24 @@
   .logo-text { font-size: 13px; font-weight: 700; letter-spacing: .15em; color: var(--white); }
   .logo-sub  { font-size: 9px;  font-weight: 400; letter-spacing: .2em;  color: var(--white-dim); margin-top: 2px; }
 
+
+/* ADD THIS BELOW EXISTING LOGO STYLES */
+
+.logo-img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+
+  /* Premium glow */
+  filter: drop-shadow(0 0 10px rgba(14,165,233,0.6));
+  transition: 0.3s ease;
+}
+
+.logo-img:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 18px rgba(14,165,233,0.9));
+}
+
   .nav-links { display: flex; gap: 32px; }
   .nav-links a {
     text-decoration: none; font-size: 11px; font-weight: 500;
@@ -562,12 +580,12 @@
 <!-- NAV -->
 <nav>
   <a href="#" class="nav-logo">
-    <div class="logo-mark"></div>
-    <div>
-      <div class="logo-text">ICIS</div>
-      <div class="logo-sub">INTELLIGENCE SYSTEM</div>
-    </div>
-  </a>
+  <img src="/images/icis-logo.png" alt="ICIS Logo" class="logo-img"/>
+  <div>
+    <div class="logo-text">ICIS</div>
+    <div class="logo-sub">INTELLIGENCE SYSTEM</div>
+  </div>
+</a>
   <div class="nav-links">
     <a href="#about">ABOUT</a>
     <a href="#services">SERVICES</a>
@@ -602,7 +620,7 @@
   <div class="hero-content">
     <div class="hero-badge">
       <span class="dot"></span>
-      INDIA'S AGENTIC AI FRONTIER — EST. 2024
+      INDIA'S AGENTIC AI FRONTIER — EST. 2026
     </div>
     <h1 class="hero-title">
       Indian<br/>
@@ -795,14 +813,14 @@
             <div class="c-icon">📧</div>
             <div>
               <div class="c-label">EMAIL</div>
-              <div class="c-value">hello@icis.ai</div>
+              <div class="c-value">draviralchaudhary@gmail.com</div>
             </div>
           </div>
           <div class="c-item">
             <div class="c-icon">📞</div>
             <div>
               <div class="c-label">PHONE</div>
-              <div class="c-value">+91 958284-0556</div>
+              <div class="c-value">+91 7579063758</div>
             </div>
           </div>
           <div class="c-item">
@@ -872,7 +890,7 @@
   <div class="footer-grid">
     <div class="footer-brand">
       <a href="#" class="nav-logo" style="display:inline-flex">
-        <div class="logo-mark"></div>
+        <img src="/images/icis-logo.png" alt="ICIS Logo" class="logo-img"/>
         <div style="margin-left:12px">
           <div class="logo-text">ICIS</div>
           <div class="logo-sub">INTELLIGENCE SYSTEM</div>
@@ -912,7 +930,7 @@
         </div>
         <div class="footer-contact-item">
           <span>📧</span>
-          <span>hello@icis.ai<br/>support@icis.ai</span>
+          <span>draviralchaudhary@gmail.com</span>
         </div>
         <div class="footer-contact-item">
           <span>📞</span>
